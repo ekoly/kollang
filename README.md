@@ -7,3 +7,11 @@ decided the details on yet.
 ### Current State
 
 Kol is currently a glorified calculator with a limited capacity for variable assignment.
+
+### Usage
+
+Generate a `kol` executable by running `make`.
+
+Run against one of the files in the `tests` directory by running `./kol tests/test1.kol`.
+
+Interactive mode is not implemented yet.
