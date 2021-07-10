@@ -128,6 +128,10 @@ KolToken *parseset(string &expr, unsigned *start) {
 
 KolToken *parsetuple(string &expr, unsigned *start) {
 
+    #if DEBUG == 1
+    cout << "parsetuple()\n";
+    #endif
+
     string buffer, parens;
     unsigned j = (*start)+1,
         exprstart = 0;
@@ -166,6 +170,9 @@ KolToken *parsetuple(string &expr, unsigned *start) {
                 break;
 
         }
+
+        j++;
+
     }
 
     return NULL;
@@ -179,7 +186,7 @@ KolToken *parselist(string &expr, unsigned *start) {
 KolToken *parseexpr(string &expr, unsigned *start) {
 
     #if DEBUG == 1
-    cout << "parseexpr()" << "\n";
+    cout << "parseexpr(" << expr << ")\n";
     #endif
 
     unsigned j = *start;
