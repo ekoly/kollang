@@ -1,3 +1,5 @@
+#include <vector>
+#include <unordered_map>
 #include <iostream>
 
 #include "KolMain.h"
@@ -30,13 +32,49 @@ bool kolScopeSetup() {
 
 }
 
+KolObject *kolScopeLookupBuiltin(string key) {
+
+    #if DEBUG == 1
+    cout << "BUILTIN lookup: kolScopeLookupBuiltin(" << key << ")\n";
+    if (kolScopes.size() < 2) {
+        cout << "ERROR: scopes not set up!\n";
+        return NULL;
+    }
+    #endif
+
+    auto r = kolScopes[0]->find(key);
+    if (r != kolScopes[0]->end()) {
+        return r->second;
+    }
+
+    #if DEBUG == 1
+    cout << "WARNING: no builtin found for key: " << key << "\n";
+    #endif
+
+    return NULL;
+}
+
 KolObject *kolScopeLookup(string key) {
+
+    #if DEBUG == 1
+    cout << "LOCAL lookup: kolScopeLookup(" << key << ")\n";
+    if (kolScopes.size() < 2) {
+        cout << "ERROR: scopes not set up!\n";
+        return NULL;
+    }
+    #endif
+
     for (int j = kolScopes.size()-1; j >= 0; j--) {
         auto r = kolScopes[j]->find(key);
         if (r != kolScopes[j]->end()) {
             return r->second;
         }
     }
+
+    #if DEBUG == 1
+    cout << "WARNING: no variable found for key: " << key << "\n";
+    #endif
+
     return NULL;
 }
 
@@ -45,7 +83,7 @@ bool kolScopeInsertBuiltin(string key, KolObject *val) {
     #if DEBUG == 1
     cout << "BUILTIN insert: kolScopeInsertBuiltin(" << key << ", <" << val->getClassname() << ">)\n";
     if (kolScopes.size() < 2) {
-        cout << "scopes not set up!\n";
+        cout << "ERROR: scopes not set up!\n";
         return false;
     }
     #endif
@@ -63,7 +101,7 @@ bool kolScopeInsertGlobal(string key, KolObject *val) {
     #if DEBUG == 1
     cout << "GLOBAL insert: kolScopeInsertGlobal(" << key << ", <" << val->getClassname() << ">)\n";
     if (kolScopes.size() < 2) {
-        cout << "scopes not set up!\n";
+        cout << "ERROR: scopes not set up!\n";
         return false;
     }
     #endif
@@ -87,7 +125,7 @@ bool kolScopeInsert(string key, KolObject *val) {
     #if DEBUG == 1
     cout << "LOCAL insert: kolScopeInsert(" << key << ", <" << val->getClassname() << ">)\n";
     if (kolScopes.size() < 2) {
-        cout << "scopes not set up!\n";
+        cout << "ERROR: scopes not set up!\n";
         return false;
     }
     #endif

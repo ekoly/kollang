@@ -182,7 +182,7 @@ KolOperator kopfor = KolOperator("__for__", 0, {1, 2, 3}),
             kopidiv = KolOperator("__idiv__", -1, {1}),
             kopifloordiv = KolOperator("__ifloordiv__", -1, {1});
 
-const vector<pair<string, KolOperator *>> *operators = new vector<pair<string, KolOperator *>>({
+vector<pair<string, KolOperator *> > *operators = new vector<pair<string, KolOperator *> >({
     { "for", &kopfor },
     { "while", &kopwhile },
     { "continue", &kopcontinue },
@@ -298,6 +298,6 @@ bool kolOverheadSetup() {
 }
 
 
-vector<pair<string, KolOperator *>> *getKolOperators() {
+vector<pair<string, KolOperator *> > *getKolOperators() {
     return operators;
 }

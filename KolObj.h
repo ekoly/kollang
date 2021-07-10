@@ -1,8 +1,12 @@
+#ifndef KOL_OBJ_H
+#define KOL_OBJ_H
+
 #include <vector>
 #include <unordered_map>
 #include <functional>
 
 using namespace std;
+
 
 class KolToken {
 
@@ -101,3 +105,4 @@ class KolInt : public KolObject {
         int getValue();
 };
 
+#endif

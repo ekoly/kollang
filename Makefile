@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -g -ansi -Wall
+CFLAGS = -g -Wall
 
 TARGET = kol
 
@@ -14,7 +14,7 @@ main.o: main.cpp KolMain.h KolParse.h KolObj.h KolScopes.h KolOverhead.h
 KolMain.o: KolMain.cpp KolMain.h KolObj.h KolScopes.h KolOverhead.h
 	$(CC) $(CFLAGS) -c KolMain.cpp
 
-KolParse.o: KolParse.cpp KolObj.h KolScopes.h KolOverhead.h KolParse.h
+KolParse.o: KolParse.cpp KolMain.h KolObj.h KolScopes.h KolOverhead.h KolParse.h
 	$(CC) $(CFLAGS) -c KolParse.cpp
 
 KolObj.o: KolObj.cpp KolMain.h KolObj.h KolScopes.h
@@ -23,11 +23,8 @@ KolObj.o: KolObj.cpp KolMain.h KolObj.h KolScopes.h
 KolScopes.o: KolScopes.cpp KolMain.h KolScopes.h
 	$(CC) $(CFLAGS) -c KolScopes.cpp
 
-KolScopes.o: KolScopes.cpp KolMain.h KolScopes.h
-	$(CC) $(CFLAGS) -c KolScopes.cpp
-
 KolOverhead.o: KolOverhead.cpp KolMain.h KolObj.h KolScopes.h KolOverhead.h
 	$(CC) $(CFLAGS) -c KolOverhead.cpp
 
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(TARGET) *.o

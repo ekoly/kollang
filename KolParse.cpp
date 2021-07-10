@@ -1,23 +1,26 @@
+#include <iostream>
+#include <fstream>
 #include <string>
 #include <set>
 #include <vector>
 
+#include "KolMain.h"
 #include "KolObj.h"
 #include "KolScopes.h"
 #include "KolOverhead.h"
 #include "KolParse.h"
 
-KolToken *parsevar(string &expr, int &start) {
+KolToken *parsevar(string &expr, unsigned *start) {
 
     string buffer;
     char c;
 
-    for (int j = start; j < expr.size(); j++) {
+    for (unsigned j = *start; j < expr.size(); j++) {
         c = expr[j];
-        if ('A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_') {
+        if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || c == '_') {
             buffer.push_back(c);
         } else {
-            start = j;
+            *start = j;
             break;
         }
     }
@@ -31,14 +34,14 @@ KolToken *parsevar(string &expr, int &start) {
 
 }
 
-KolToken *parsestring(string &expr, int *start) {
+KolToken *parsestring(string &expr, unsigned *start) {
 
     #if DEBUG == 1
     cout << "parsestring()" << *start << "\n";
     #endif
 
     string buffer;
-    int j = (*start)+1;
+    unsigned j = (*start)+1;
 
     char c, lookahead;
     char bound = expr[*start];
@@ -91,10 +94,10 @@ KolToken *parsestring(string &expr, int *start) {
 
 }
 
-KolToken *parsenumber(string &expr, int *start) {
+KolToken *parsenumber(string &expr, unsigned *start) {
 
     string buffer;
-    int j = *start;
+    unsigned j = *start;
     bool is_float = false;
 
     while (j < expr.length() && (('0' <= expr[j] && expr[j] <= '9') || expr[j] == '.' || expr[j] == '_')) {
@@ -119,14 +122,14 @@ KolToken *parsenumber(string &expr, int *start) {
 
 }
 
-KolToken *parseset(string &expr, int *start) {
+KolToken *parseset(string &expr, unsigned *start) {
     return NULL;
 }
 
-KolToken *parsetuple(string &expr, int *start) {
+KolToken *parsetuple(string &expr, unsigned *start) {
 
     string buffer, parens;
-    int j = (*start)+1,
+    unsigned j = (*start)+1,
         exprstart = 0;
     char c;
 
@@ -169,17 +172,17 @@ KolToken *parsetuple(string &expr, int *start) {
 
 }
 
-KolToken *parselist(string &expr, int *start) {
+KolToken *parselist(string &expr, unsigned *start) {
     return NULL; // TODO
 }
 
-KolToken *parseexpr(string &expr, int *start) {
+KolToken *parseexpr(string &expr, unsigned *start) {
 
     #if DEBUG == 1
     cout << "parseexpr()" << "\n";
     #endif
 
-    int j = *start;
+    unsigned j = *start;
     vector<KolToken *> tokens;
 
     auto cmp = [](KolOperator *a, KolOperator *b) {
@@ -250,8 +253,8 @@ KolToken *parseexpr(string &expr, int *start) {
             continue;
         }
 
-        if ('A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || c == '_') {
-            tokens.push_back(parsevar(expr, j));
+        if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || c == '_') {
+            tokens.push_back(parsevar(expr, &j));
             if (tokens.back() == NULL) {
                 return NULL;
             }
@@ -278,7 +281,6 @@ KolToken *parseexpr(string &expr, int *start) {
     cout << "num tokens: " << tokens.size() << "\n";
     #endif
 
-    bool is_using_prev;
     vector<KolToken *> next_tokens;
 
     for (set<KolOperator *>::iterator it = ops.begin(); it != ops.end(); it++) {
@@ -286,28 +288,20 @@ KolToken *parseexpr(string &expr, int *start) {
         next_tokens = vector<KolToken *>();
         KolOperator *kop = *it;
         KolObject *self, *callback, *result;
-        is_using_prev = false;
         int max_arg = 0;
 
         #if DEBUG == 1
         cout << "processing op: " << kop->getClassname() << "\n";
         #endif
 
-        if (kop->getSelf() == -1) {
-            is_using_prev = true;
-        }
-
         vector<int> &args = kop->getArgs();
-        for (int k = 0; k < args.size(); k++) {
-            if (args[k] == -1) {
-                is_using_prev = true;
-            }
+        for (unsigned k = 0; k < args.size(); k++) {
             if (args[k] > max_arg) {
                 max_arg = args[k];
             }
         }
 
-        for (int j = 0; j < tokens.size(); j++) {
+        for (unsigned j = 0; j < tokens.size(); j++) {
             KolToken *kt = tokens[j];
 
             #if DEBUG == 1
@@ -324,7 +318,7 @@ KolToken *parseexpr(string &expr, int *start) {
                     callback = self->access(kop->getDunder());
                 } else if (kop->getSelf() == 0) {
                     self = NULL;
-                    callback = scopes[0].find(kop->getDunder())->second;
+                    callback = kolScopeLookupBuiltin(kop->getDunder());
                 } else {
                     self = (KolObject *)tokens[j + kop->getSelf()];
                     callback = self->access(kop->getDunder());
@@ -335,7 +329,7 @@ KolToken *parseexpr(string &expr, int *start) {
                 #endif
 
                 vector<KolObject *> arg_objs = {self};
-                for (int k = 0; k < args.size(); k++) {
+                for (unsigned k = 0; k < args.size(); k++) {
                     if (args[k] == -1) {
                         arg_objs.push_back((KolObject *)next_tokens.back());
                         next_tokens.pop_back();
@@ -369,14 +363,14 @@ int parseline(string &line) {
     cout << "parsing line: " << line << '\n';
     #endif
     vector<KolToken *> tokens;
-    int i = 0;
+    unsigned i = 0;
 
     while (i < line.size()) {
         KolToken *t = parseexpr(line, &i);
         tokens.push_back(t);
     }
 
-    for (int j = 0; j < tokens.size(); j++) {
+    for (unsigned j = 0; j < tokens.size(); j++) {
         vector<KolObject *> args;
         args.push_back((KolObject *)tokens[j]);
         KolFunction *callback = (KolFunction *)((KolObject *)tokens[j])->access("__str__");
@@ -396,7 +390,7 @@ int parse(ifstream &source) {
     string buffer;
     string parens;
 
-    int line_number = 1;
+    unsigned line_number = 1;
 
     while (source) {
        c = source.get();
