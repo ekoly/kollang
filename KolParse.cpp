@@ -273,6 +273,8 @@ KolToken *parseexpr(string &expr, unsigned *start) {
             if (tokens.back() == NULL) {
                 return NULL;
             }
+        } else {
+            j++;
         }
     }
 
@@ -353,6 +355,20 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
     }
 
+    if (tokens.size() > 1) {
+        cout << "WARNING: parsing line resulted in more than one token.\n";
+        for (unsigned i = 0; i < tokens.size(); i++) {
+            cout << "\ttoken " << i << ": " << ((tokens[i] != NULL) ? tokens[i]->getClassname() : "NULL" ) << "\n";
+        }
+        return tokens[0];
+    } else if (tokens.size() == 0) {
+        #if DEBUG == 1
+        cout << "WARNING: parsed empty line.\n";
+        #endif
+        return NULL;
+    }
+
+    // all good
     return tokens[0];
 
 }
@@ -363,22 +379,29 @@ int parseline(string &line) {
     cout << "parsing line: " << line << '\n';
     #endif
     vector<KolToken *> tokens;
+    vector<KolObject *> args;
     unsigned i = 0;
 
     while (i < line.size()) {
         KolToken *t = parseexpr(line, &i);
-        tokens.push_back(t);
+        if (t != NULL) {
+            tokens.push_back(t);
+        }
     }
 
-    for (unsigned j = 0; j < tokens.size(); j++) {
-        vector<KolObject *> args;
-        args.push_back((KolObject *)tokens[j]);
-        KolFunction *callback = (KolFunction *)((KolObject *)tokens[j])->access("__str__");
-        KolString *res = (KolString *)callback->call(args);
-        #if DEBUG == 1
-        cout << res->getValue() << '\n';
-        #endif
+    #if DEBUG == 1
+
+    if (tokens.size() == 0) {
+        cout << ">>> " << "None\n";
+    } else {
+        for (unsigned j = 0; j < tokens.size(); j++) {
+            args = { (KolObject *)tokens[j] };
+            KolFunction *callback = (KolFunction *)((KolObject *)tokens[j])->access("__str__");
+            KolString *res = (KolString *)callback->call(args);
+            cout << ">>> " << res->getValue() << '\n';
+        }
     }
+    #endif
 
     return 0;
 
@@ -387,6 +410,7 @@ int parseline(string &line) {
 int parse(ifstream &source) {
 
     char c;
+    int res;
     string buffer;
     string parens;
 
@@ -399,7 +423,10 @@ int parse(ifstream &source) {
                if (parens.length() > 0) {
                    buffer.push_back(' ');
                } else {
-                   parseline(buffer);
+                   res = parseline(buffer);
+                   if (res != 0) {
+                       return res;
+                   }
                    buffer.clear();
                }
                line_number++;
@@ -407,12 +434,13 @@ int parse(ifstream &source) {
 
            case ';':
                if (parens.length() > 0) {
-                   #if DEBUG == 1
-                   cout << "\nMismatched parens on line " << line_number << "\n";
-                   #endif
+                   cout << "ERROR: Mismatched parens on line " << line_number << "\n";
                    return 1;
                } else {
-                   parseline(buffer);
+                   res = parseline(buffer);
+                   if (res != 0) {
+                       return res;
+                   }
                    buffer.clear();
                }
                continue;
@@ -426,9 +454,7 @@ int parse(ifstream &source) {
 
            case ')':
                if (parens.back() != '(') {
-                   #if DEBUG == 1
-                   cout << "\nMismatched parens on line " << line_number << "\n";
-                   #endif
+                   cout << "ERROR: Mismatched parens on line " << line_number << "\n";
                    return 1;
                }
                parens.pop_back();
@@ -437,9 +463,7 @@ int parse(ifstream &source) {
 
            case ']':
                if (parens.back() != ']') {
-                   #if DEBUG == 1
-                   cout << "\nMismatched square brackets on line " << line_number << "\n";
-                   #endif
+                   cout << "ERROR: Mismatched square brackets on line " << line_number << "\n";
                    return 1;
                }
                parens.pop_back();
@@ -448,9 +472,7 @@ int parse(ifstream &source) {
 
            case '}':
                if (parens.back() != '}') {
-                   #if DEBUG == 1
-                   cout << "\nMismatched curley braces on line " << line_number << "\n";
-                   #endif
+                   cout << "ERROR: Mismatched curley braces on line " << line_number << "\n";
                    return 1;
                }
                parens.pop_back();
@@ -463,7 +485,12 @@ int parse(ifstream &source) {
        }
     }
 
-    parseline(buffer);
+    if (buffer.size() > 0) {
+        res = parseline(buffer);
+        if (res != 0) {
+            return res;
+        }
+    }
 
     return 0;
 

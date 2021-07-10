@@ -81,7 +81,7 @@ KolObject *kolScopeLookup(string key) {
 bool kolScopeInsertBuiltin(string key, KolObject *val) {
 
     #if DEBUG == 1
-    cout << "BUILTIN insert: kolScopeInsertBuiltin(" << key << ", <" << val->getClassname() << ">)\n";
+    cout << "BUILTIN insert: kolScopeInsertBuiltin(" << key << ", <" << ((val != NULL) ? val->getClassname() : "NULL") << ">)\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";
         return false;
@@ -99,7 +99,7 @@ bool kolScopeInsertBuiltin(string key, KolObject *val) {
 bool kolScopeInsertGlobal(string key, KolObject *val) {
 
     #if DEBUG == 1
-    cout << "GLOBAL insert: kolScopeInsertGlobal(" << key << ", <" << val->getClassname() << ">)\n";
+    cout << "GLOBAL insert: kolScopeInsertGlobal(" << key << ", <" << ((val != NULL) ? val->getClassname() : "NULL") << ">)\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";
         return false;
@@ -123,7 +123,7 @@ bool kolScopeInsertGlobal(string key, KolObject *val) {
 bool kolScopeInsert(string key, KolObject *val) {
 
     #if DEBUG == 1
-    cout << "LOCAL insert: kolScopeInsert(" << key << ", <" << val->getClassname() << ">)\n";
+    cout << "LOCAL insert: kolScopeInsert(" << key << ", <" << ((val != NULL) ? val->getClassname() : "NULL") << ">)\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";
         return false;

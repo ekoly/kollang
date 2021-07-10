@@ -10,6 +10,8 @@
 using namespace std;
 
 
+KolNone none;
+
 // Primitive method definitions
 // primitive string
 KolObject *protoStr__str__callback(vector<KolObject *> args) {
@@ -224,7 +226,9 @@ bool kolOverheadSetup() {
               *protoFloat = new KolFloat(0.0);
 
     #if DEBUG == 1
-    cout << "setting builtins" << "\n";
+    cout << "####################\n";
+    cout << "# setting builtins #\n";
+    cout << "####################\n";
     #endif
 
     // string builtin functions
@@ -279,19 +283,27 @@ bool kolOverheadSetup() {
     kolScopeInsertBuiltin(protoInt->getClassname(), protoInt);
     kolScopeInsertBuiltin(protoFloat->getClassname(), protoFloat);
 
-    kolScopeInsertBuiltin("for", NULL);
-    kolScopeInsertBuiltin("while", NULL);
-    kolScopeInsertBuiltin("break", NULL);
-    kolScopeInsertBuiltin("continue", NULL);
-    kolScopeInsertBuiltin("in", NULL);
-    kolScopeInsertBuiltin("global", NULL);
-    kolScopeInsertBuiltin("return", NULL);
-    kolScopeInsertBuiltin("if", NULL);
-    kolScopeInsertBuiltin("elif", NULL);
-    kolScopeInsertBuiltin("else", NULL);
-    kolScopeInsertBuiltin("def", NULL);
-    kolScopeInsertBuiltin("class", NULL);
-    kolScopeInsertBuiltin("print", NULL);
+    kolScopeInsertBuiltin("None", &none);
+    kolScopeInsertBuiltin("for", &none);
+    kolScopeInsertBuiltin("while", &none);
+    kolScopeInsertBuiltin("break", &none);
+    kolScopeInsertBuiltin("continue", &none);
+    kolScopeInsertBuiltin("in", &none);
+    kolScopeInsertBuiltin("global", &none);
+    kolScopeInsertBuiltin("return", &none);
+    kolScopeInsertBuiltin("if", &none);
+    kolScopeInsertBuiltin("elif", &none);
+    kolScopeInsertBuiltin("else", &none);
+    kolScopeInsertBuiltin("def", &none);
+    kolScopeInsertBuiltin("class", &none);
+    kolScopeInsertBuiltin("print", &none);
+
+    #if DEBUG == 1
+    cout << "#############################\n";
+    cout << "# finished setting builtins #\n";
+    cout << "#############################\n";
+    #endif
+
 
     return true;
 
