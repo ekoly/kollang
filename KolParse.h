@@ -13,7 +13,8 @@ KolToken *parseset(string &expr, unsigned *start);
 KolToken *parsetuple(string &expr, unsigned *start);
 KolToken *parselist(string &expr, unsigned *start);
 KolToken *parseexpr(string &expr, unsigned *start);
-int parseline(string &line);
+int parseline(string &line, bool is_interactive_mode);
+int parseInteractive();
 int parse(ifstream &source);
 
 #endif

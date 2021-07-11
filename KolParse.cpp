@@ -14,23 +14,20 @@ KolToken *parsevar(string &expr, unsigned *start) {
 
     string buffer;
     char c;
+    unsigned j;
 
-    for (unsigned j = *start; j < expr.size(); j++) {
+    for (j = *start; j < expr.size(); j++) {
         c = expr[j];
         if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || c == '_') {
             buffer.push_back(c);
         } else {
-            *start = j;
             break;
         }
     }
 
-    KolObject *result = (KolObject *)kolScopeLookup(buffer);
-    if (result != NULL) {
-        return result;
-    }
+    *start = j;
 
-    return new KolObject();
+    return new KolUnboundVariable(buffer);
 
 }
 
@@ -158,6 +155,7 @@ KolToken *parsetuple(string &expr, unsigned *start) {
             case '}':
             case ']':
                 if (parens.empty() || parens.back() != c) {
+                    cout << "ERROR: mismatched parens: " << buffer << "\n";
                     return NULL;
                 } else {
                     parens.pop_back();
@@ -213,11 +211,12 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         is_continue = false;
         c = expr[j];
 
+        #if DEBUG == 1
         if (tokens.size() > 0) {
-            #if DEBUG == 1
-            cout << tokens.back()->getClassname() << ", " << c << "\n";
-            #endif
+            cout << "previous token: " << tokens.back()->getClassname() << ", ";
         }
+        cout << "current char: " << c << "\n";
+        #endif
 
         if (j+1 < expr.length()) {
             lookahead = expr[j+1];
@@ -244,10 +243,13 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
         for (vector<pair<string, KolOperator *>>::iterator it = operators->begin(); it != operators->end(); it++) {
             string kop = it->first;
-            if (j+kop.length() >= expr.length()) {
+            if (j+kop.length() > expr.length()) {
                 continue;
             }
             if (expr.compare(j, kop.length(), kop) == 0) {
+                #if DEBUG == 1
+                cout << "encountered operator: " << kop << "\n";
+                #endif
                 tokens.push_back(it->second);
                 ops.insert(it->second);
                 j += kop.length();
@@ -304,6 +306,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         #endif
 
         vector<int> &args = kop->getArgs();
+        vector<bool> &is_bind_vars = kop->getIsBindVars();
         for (unsigned k = 0; k < args.size(); k++) {
             if (args[k] > max_arg) {
                 max_arg = args[k];
@@ -319,33 +322,91 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
             if (kt == kop) {
                 if (kop->getSelf() == -1) {
+
                     self = (KolObject *)next_tokens.back();
+
+                    if (self->getClassname() == "__unbound__") {
+                        self = kolScopeLookup(((KolUnboundVariable *)self)->getVarname());
+                    }
+
                     next_tokens.pop_back();
                     #if DEBUG == 1
                     cout << "self is previous token: " << self->getClassname() << "." << kop->getDunder() << "\n";
                     #endif
                     callback = self->access(kop->getDunder());
+
                 } else if (kop->getSelf() == 0) {
                     self = NULL;
                     callback = kolScopeLookupBuiltin(kop->getDunder());
                 } else {
+
+                    if (tokens.size() <= j + kop->getSelf()) {
+                        cout << "ERROR: missing argument to operator: " << kt->getClassname() << "\n";
+                        return NULL;
+                    }
                     self = (KolObject *)tokens[j + kop->getSelf()];
+
+                    if (self->getClassname() == "__unbound__") {
+                        self = kolScopeLookup(((KolUnboundVariable *)self)->getVarname());
+                    }
+
                     callback = self->access(kop->getDunder());
+
                 }
 
                 #if DEBUG == 1
                 cout << "callback: " << callback << "\n";
                 #endif
 
-                vector<KolObject *> arg_objs = {self};
+                vector<KolObject *> arg_objs;
+                KolObject *arg_obj;
+
+                if (self != NULL) {
+                    arg_objs = { self };
+                }
+
                 for (unsigned k = 0; k < args.size(); k++) {
+                    #if DEBUG == 1
+                    cout << "processing arg: i: " << k << ", args[i]: " << args[k] << ", is_bind_vars[i]: " << is_bind_vars[k] << "\n";
+                    #endif
                     if (args[k] == -1) {
-                        arg_objs.push_back((KolObject *)next_tokens.back());
+                        arg_obj = (KolObject *)next_tokens.back();
+                        if (is_bind_vars[k] && arg_obj->getClassname() == "__unbound__") {
+                            arg_obj = kolScopeLookup(((KolUnboundVariable *)arg_obj)->getVarname());
+                        }
+                        arg_objs.push_back(arg_obj);
                         next_tokens.pop_back();
                     } else {
-                        arg_objs.push_back((KolObject *)tokens[j + args[k]]);
+                        if (tokens.size() <= j + args[k]) {
+                            cout << "ERROR: missing argument to operator: " << kt->getClassname() << "\n";
+                            return NULL;
+                        }
+                        arg_obj = (KolObject *)tokens[j + args[k]];
+                        if (is_bind_vars[k] && arg_obj->getClassname() == "__unbound__") {
+                            arg_obj = kolScopeLookup(((KolUnboundVariable *)arg_obj)->getVarname());
+                        }
+                        arg_objs.push_back(arg_obj);
                     }
+                    #if DEBUG == 1
+                    cout << "successfully processed arg " << k << "\n";
+                    #endif
                 }
+
+                #if DEBUG == 1
+                cout << "args: ";
+                for (unsigned l = 0; l < arg_objs.size(); l++) {
+
+                    if (arg_objs[l]->getClassname() == "int") {
+                        cout << "int(" << ((KolInt *)arg_objs[l])->getValue() << ")";
+                    } else if (arg_objs[l]->getClassname() == "float") {
+                        cout << "float(" << ((KolFloat *)arg_objs[l])->getValue() << ")";
+                    } else if (arg_objs[l]->getClassname() == "str") {
+                        cout << "str(" << ((KolString *)arg_objs[l])->getValue() << ")";
+                    }
+                    cout << ", ";
+                }
+                cout << "\n";
+                #endif
 
                 result = ((KolFunction *)callback)->call(arg_objs);
                 next_tokens.push_back(result);
@@ -380,7 +441,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
 }
 
-int parseline(string &line) {
+int parseline(string &line, bool is_interactive_mode) {
 
     #if DEBUG == 1
     cout << "parsing line: " << line << '\n';
@@ -408,7 +469,17 @@ int parseline(string &line) {
             cout << ">>> " << res->getValue() << '\n';
         }
     }
+
     #endif
+
+    if (is_interactive_mode) {
+        for (unsigned j = 0; j < tokens.size(); j++) {
+            args = { (KolObject *)tokens[j] };
+            KolFunction *callback = (KolFunction *)((KolObject *)tokens[j])->access("__str__");
+            KolString *res = (KolString *)callback->call(args);
+            cout << res->getValue() << '\n';
+        }
+    }
 
     return 0;
 
@@ -430,7 +501,7 @@ int parse(ifstream &source) {
                if (parens.length() > 0) {
                    buffer.push_back(' ');
                } else {
-                   res = parseline(buffer);
+                   res = parseline(buffer, false);
                    if (res != 0) {
                        return res;
                    }
@@ -444,7 +515,7 @@ int parse(ifstream &source) {
                    cout << "ERROR: Mismatched parens on line " << line_number << "\n";
                    return 1;
                } else {
-                   res = parseline(buffer);
+                   res = parseline(buffer, false);
                    if (res != 0) {
                        return res;
                    }
@@ -493,7 +564,114 @@ int parse(ifstream &source) {
     }
 
     if (buffer.size() > 0) {
-        res = parseline(buffer);
+        res = parseline(buffer, false);
+        if (res != 0) {
+            return res;
+        }
+    }
+
+    return 0;
+
+}
+
+
+int parseInteractive() {
+
+    char c;
+    int res;
+    unsigned i;
+    string buffer, parens, userline;
+
+    unsigned line_number = 1;
+
+    while (true) {
+        
+        if (buffer.length() == 0) {
+            cout << ">>> ";
+        } else {
+            cout << "... ";
+        }
+
+        getline(cin, userline);
+        if (cin.eof() == 1) {
+            cout << "\n";
+            return 0;
+        }
+
+        for (i = 0; i < userline.length(); i++) {
+
+            c = userline[i];
+
+            switch (c) {
+
+               case ';':
+                   if (parens.length() > 0) {
+                       cout << "ERROR: Mismatched parens on line " << line_number << "\n";
+                   } else {
+                       res = parseline(buffer, true);
+                       if (res != 0) {
+                           cout << "ERROR: processing line " << line_number << "\n";
+                       }
+                       buffer.clear();
+                   }
+                   continue;
+
+               case '(':
+               case '[':
+               case '{':
+                   parens.push_back(c);
+                   buffer.push_back(c);
+                   continue;
+
+               case ')':
+                   if (parens.back() != '(') {
+                       cout << "ERROR: Mismatched parens on line " << line_number << "\n";
+                       parens.clear();
+                       buffer.clear();
+                   } else {
+                       parens.pop_back();
+                       buffer.push_back(c);
+                   }
+                   continue;
+
+               case ']':
+                   if (parens.back() != ']') {
+                       cout << "ERROR: Mismatched square brackets on line " << line_number << "\n";
+                       parens.clear();
+                       buffer.clear();
+                   } else {
+                       parens.pop_back();
+                       buffer.push_back(c);
+                   }
+                   continue;
+
+               case '}':
+                   if (parens.back() != '}') {
+                       cout << "ERROR: Mismatched curley braces on line " << line_number << "\n";
+                       parens.clear();
+                       buffer.clear();
+                   } else {
+                       parens.pop_back();
+                       buffer.push_back(c);
+                   }
+                   continue;
+
+               default:
+                   buffer.push_back(c);
+                   continue;
+            } // end switch
+
+        } // end for
+
+        if (parens.length() == 0) {
+            parseline(buffer, true);
+            buffer.clear();
+        }
+
+    } // end while
+
+    if (buffer.size() > 0) {
+        res = parseline(buffer, true);
         if (res != 0) {
             return res;
         }

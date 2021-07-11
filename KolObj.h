@@ -23,17 +23,19 @@ class KolOperator : public KolToken {
         string dunder;
         int self, precedence;
         vector<int> args;
+        vector<bool> is_bind_vars;
 
     public:
 
-        KolOperator(string dunder, int self, vector<int> args);
-        KolOperator(string dunder, int self, vector<int> args, int precedence);
+        KolOperator(string dunder, int self, vector<int> args, vector<bool> is_bind_vars);
+        KolOperator(string dunder, int self, vector<int> args, vector<bool> is_bind_vars, int precedence);
 
         int getPrecedence();
 
         string getDunder();
         int getSelf();
         vector<int> &getArgs();
+        vector<bool> &getIsBindVars();
         string getClassname();
 };
 
@@ -57,6 +59,21 @@ class KolObject : public KolToken {
 };
 
 
+class KolUnboundVariable : public KolObject {
+
+    protected:
+
+        string varname;
+        
+    public:
+
+        KolUnboundVariable(string varname);
+        
+        string getVarname();
+
+};
+
+
 class KolNone : public KolObject {
 
     public:
@@ -70,7 +87,7 @@ class KolFunction : public KolObject {
     public:
 
         KolFunction();
-        function<KolObject *(vector<KolObject *>)> call;
+        function<KolObject *(vector<KolObject *> &)> call;
 
 };
 

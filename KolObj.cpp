@@ -13,17 +13,19 @@ string KolToken::getClassname() {
     return "Undefined Token";
 }
 
-KolOperator::KolOperator(string dunder, int self, vector<int> args) {
+KolOperator::KolOperator(string dunder, int self, vector<int> args, vector<bool> is_bind_vars) {
     this->dunder = dunder;
     this->self = self;
     this->args = args;
+    this->is_bind_vars = is_bind_vars;
     this->precedence = 999;
 }
 
-KolOperator::KolOperator(string dunder, int self, vector<int> args, int precedence) {
+KolOperator::KolOperator(string dunder, int self, vector<int> args, vector<bool> is_bind_vars, int precedence) {
     this->dunder = dunder;
     this->self = self;
     this->args = args;
+    this->is_bind_vars = is_bind_vars;
     this->precedence = precedence;
 }
 
@@ -41,6 +43,10 @@ int KolOperator::getSelf() {
 
 vector<int> &KolOperator::getArgs() {
     return this->args;
+}
+
+vector<bool> &KolOperator::getIsBindVars() {
+    return this->is_bind_vars;
 }
 
 string KolOperator::getClassname() {
@@ -89,6 +95,14 @@ unordered_map<string, KolObject *> *KolObject::getMembersMap() {
 
 string KolObject::getClassname() {
     return this->classname;
+}
+
+KolUnboundVariable::KolUnboundVariable(string varname) : KolObject("__unbound__") {
+    this->varname = varname;
+}
+
+string KolUnboundVariable::getVarname() {
+    return this->varname;
 }
 
 KolNone::KolNone() : KolObject("NoneType") {
