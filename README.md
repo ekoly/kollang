@@ -14,4 +14,6 @@ Generate a `kol` executable by running `make`.
 
 Run against one of the files in the `tests` directory by running `./kol tests/test1.kol`.
 
-Interactive mode is not implemented yet.
+Run interactive mode by running `./kol` with no arguments.
+
+Disable debug mode (excessive logging) by changing `#define DEBUG 1` to `#define DEBUG 0` in `KolMain.h`.
