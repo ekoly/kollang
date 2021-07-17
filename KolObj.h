@@ -82,11 +82,11 @@ class KolNone : public KolObject {
 
 };
 
-class KolFunction : public KolObject {
+class KolMethodWrapper : public KolObject {
 
     public:
 
-        KolFunction();
+        KolMethodWrapper();
         function<KolObject *(vector<KolObject *> &)> call;
 
 };
@@ -120,6 +120,28 @@ class KolInt : public KolObject {
         KolInt(int value);
 
         int getValue();
+};
+
+class KolUnboundTuple : public KolObject {
+    private:
+        vector<KolObject *> values;
+
+    public:
+        KolUnboundTuple();
+
+        vector<KolObject *> &getValues();
+        int addValue(KolObject *value);
+}
+
+class KolTuple : public KolObject {
+    private:
+        vector<KolObject *> values;
+
+    public:
+        KolTuple();
+        KolTuple(KolUnboundTuple &initializer);
+
+        vector<KolObject *> &getValues();
 };
 
 #endif

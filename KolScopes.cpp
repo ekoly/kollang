@@ -34,7 +34,7 @@ bool kolScopeSetup() {
 
 KolObject *kolScopeLookupBuiltin(string key) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "BUILTIN lookup: kolScopeLookupBuiltin(" << key << ")\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";
@@ -47,7 +47,7 @@ KolObject *kolScopeLookupBuiltin(string key) {
         return r->second;
     }
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "WARNING: no builtin found for key: " << key << "\n";
     #endif
 
@@ -56,7 +56,7 @@ KolObject *kolScopeLookupBuiltin(string key) {
 
 KolObject *kolScopeLookup(string key) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "LOCAL lookup: kolScopeLookup(" << key << ")\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";
@@ -71,7 +71,7 @@ KolObject *kolScopeLookup(string key) {
         }
     }
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "WARNING: no variable found for key: " << key << "\n";
     #endif
 
@@ -80,7 +80,7 @@ KolObject *kolScopeLookup(string key) {
 
 bool kolScopeInsertBuiltin(string key, KolObject *val) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "BUILTIN insert: kolScopeInsertBuiltin(" << key << ", <" << ((val != NULL) ? val->getClassname() : "NULL") << ">)\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";
@@ -98,7 +98,7 @@ bool kolScopeInsertBuiltin(string key, KolObject *val) {
 
 bool kolScopeInsertGlobal(string key, KolObject *val) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "GLOBAL insert: kolScopeInsertGlobal(" << key << ", <" << ((val != NULL) ? val->getClassname() : "NULL") << ">)\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";
@@ -122,7 +122,7 @@ bool kolScopeInsertGlobal(string key, KolObject *val) {
 
 bool kolScopeInsert(string key, KolObject *val) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "LOCAL insert: kolScopeInsert(" << key << ", <" << ((val != NULL) ? val->getClassname() : "NULL") << ">)\n";
     if (kolScopes.size() < 2) {
         cout << "ERROR: scopes not set up!\n";

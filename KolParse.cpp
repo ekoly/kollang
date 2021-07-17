@@ -33,7 +33,7 @@ KolToken *parsevar(string &expr, unsigned *start) {
 
 KolToken *parsestring(string &expr, unsigned *start) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "parsestring()" << *start << "\n";
     #endif
 
@@ -125,7 +125,7 @@ KolToken *parseset(string &expr, unsigned *start) {
 
 KolToken *parsetuple(string &expr, unsigned *start) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "parsetuple()\n";
     #endif
 
@@ -183,7 +183,7 @@ KolToken *parselist(string &expr, unsigned *start) {
 
 KolToken *parseexpr(string &expr, unsigned *start) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "parseexpr(" << expr << ")\n";
     #endif
 
@@ -211,7 +211,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         is_continue = false;
         c = expr[j];
 
-        #if DEBUG == 1
+        #if DEBUG >= 1
         if (tokens.size() > 0) {
             cout << "previous token: " << tokens.back()->getClassname() << ", ";
         }
@@ -221,7 +221,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         if (j+1 < expr.length()) {
             lookahead = expr[j+1];
         } else {
-            lookahead = ' ';
+            lookahead = 0;
         }
 
         if (c == ' ') {
@@ -241,13 +241,14 @@ KolToken *parseexpr(string &expr, unsigned *start) {
             continue;
         }
 
+        // TODO find a more efficient way of doing this? Possibly a huge switch statement?
         for (vector<pair<string, KolOperator *>>::iterator it = operators->begin(); it != operators->end(); it++) {
             string kop = it->first;
             if (j+kop.length() > expr.length()) {
                 continue;
             }
             if (expr.compare(j, kop.length(), kop) == 0) {
-                #if DEBUG == 1
+                #if DEBUG >= 1
                 cout << "encountered operator: " << kop << "\n";
                 #endif
                 tokens.push_back(it->second);
@@ -288,7 +289,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
     }
 
     *start = j+1;
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "num tokens: " << tokens.size() << "\n";
     #endif
 
@@ -301,7 +302,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         KolObject *self, *callback, *result;
         int max_arg = 0;
 
-        #if DEBUG == 1
+        #if DEBUG >= 1
         cout << "processing op: " << kop->getClassname() << "\n";
         #endif
 
@@ -316,7 +317,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         for (unsigned j = 0; j < tokens.size(); j++) {
             KolToken *kt = tokens[j];
 
-            #if DEBUG == 1
+            #if DEBUG >= 1
             cout << "processing token: " << kt->getClassname() << "\n";
             #endif
 
@@ -330,7 +331,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                     }
 
                     next_tokens.pop_back();
-                    #if DEBUG == 1
+                    #if DEBUG >= 1
                     cout << "self is previous token: " << self->getClassname() << "." << kop->getDunder() << "\n";
                     #endif
                     callback = self->access(kop->getDunder());
@@ -354,7 +355,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
                 }
 
-                #if DEBUG == 1
+                #if DEBUG >= 1
                 cout << "callback: " << callback << "\n";
                 #endif
 
@@ -366,7 +367,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                 }
 
                 for (unsigned k = 0; k < args.size(); k++) {
-                    #if DEBUG == 1
+                    #if DEBUG >= 1
                     cout << "processing arg: i: " << k << ", args[i]: " << args[k] << ", is_bind_vars[i]: " << is_bind_vars[k] << "\n";
                     #endif
                     if (args[k] == -1) {
@@ -387,12 +388,12 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                         }
                         arg_objs.push_back(arg_obj);
                     }
-                    #if DEBUG == 1
+                    #if DEBUG >= 1
                     cout << "successfully processed arg " << k << "\n";
                     #endif
                 }
 
-                #if DEBUG == 1
+                #if DEBUG >= 1
                 cout << "args: ";
                 for (unsigned l = 0; l < arg_objs.size(); l++) {
 
@@ -408,7 +409,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                 cout << "\n";
                 #endif
 
-                result = ((KolFunction *)callback)->call(arg_objs);
+                result = ((KolMethodWrapper *)callback)->call(arg_objs);
                 next_tokens.push_back(result);
 
                 j += max_arg;
@@ -430,7 +431,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         }
         return tokens[0];
     } else if (tokens.size() == 0) {
-        #if DEBUG == 1
+        #if DEBUG >= 1
         cout << "WARNING: parsed empty line.\n";
         #endif
         return NULL;
@@ -443,7 +444,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
 int parseline(string &line, bool is_interactive_mode) {
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
     cout << "parsing line: " << line << '\n';
     #endif
     vector<KolToken *> tokens;
@@ -457,14 +458,14 @@ int parseline(string &line, bool is_interactive_mode) {
         }
     }
 
-    #if DEBUG == 1
+    #if DEBUG >= 1
 
     if (tokens.size() == 0) {
         cout << ">>> " << "None\n";
     } else {
         for (unsigned j = 0; j < tokens.size(); j++) {
             args = { (KolObject *)tokens[j] };
-            KolFunction *callback = (KolFunction *)((KolObject *)tokens[j])->access("__str__");
+            KolMethodWrapper *callback = (KolMethodWrapper *)((KolObject *)tokens[j])->access("__str__");
             KolString *res = (KolString *)callback->call(args);
             cout << ">>> " << res->getValue() << '\n';
         }
@@ -475,7 +476,7 @@ int parseline(string &line, bool is_interactive_mode) {
     if (is_interactive_mode) {
         for (unsigned j = 0; j < tokens.size(); j++) {
             args = { (KolObject *)tokens[j] };
-            KolFunction *callback = (KolFunction *)((KolObject *)tokens[j])->access("__str__");
+            KolMethodWrapper *callback = (KolMethodWrapper *)((KolObject *)tokens[j])->access("__str__");
             KolString *res = (KolString *)callback->call(args);
             cout << res->getValue() << '\n';
         }

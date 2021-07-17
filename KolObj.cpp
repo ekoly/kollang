@@ -109,7 +109,7 @@ KolNone::KolNone() : KolObject("NoneType") {
 
 }
 
-KolFunction::KolFunction() : KolObject("function") {
+KolMethodWrapper::KolMethodWrapper() : KolObject("method-wrapper") {
 
 }
 
@@ -135,4 +135,30 @@ KolInt::KolInt(int value) : KolObject("int") {
 
 int KolInt::getValue() {
     return this->value;
+}
+
+KolUnboundTuple::KolUnboundTuple() : KolObject("unbound-tuple") {
+
+}
+
+vector<KolObject *> &KolUnboundTuple::getValues() {
+    return this->values;
+}
+
+int KolUnboundTuple::addValue(KolObject *value) {
+    this->values.push_back(value);
+}
+
+KolTuple::KolTuple() : KolObject("tuple") {
+
+}
+
+KolTuple::KolTuple(KolUnboundTuple &initializer) : KolObject("tuple") {
+
+    this->values = vector<KolObject *>(initializer.getValues());
+
+}
+
+vector<KolObject *> &KolTuple::getValues() {
+    return this->values;
 }
