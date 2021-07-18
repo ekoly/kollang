@@ -8,6 +8,10 @@
 #include "KolObj.h"
 #include "KolScopes.h"
 #include "KolOverhead.h"
+#include "KolInt.h"
+#include "KolFloat.h"
+#include "KolString.h"
+#include "KolTuple.h"
 #include "KolParse.h"
 
 KolToken *parsevar(string &expr, unsigned *start) {
@@ -33,7 +37,7 @@ KolToken *parsevar(string &expr, unsigned *start) {
 
 KolToken *parsestring(string &expr, unsigned *start) {
 
-    #if DEBUG >= 1
+    #if DEBUG >= 2
     cout << "parsestring()" << *start << "\n";
     #endif
 
@@ -125,7 +129,7 @@ KolToken *parseset(string &expr, unsigned *start) {
 
 KolToken *parsetuple(string &expr, unsigned *start) {
 
-    #if DEBUG >= 1
+    #if DEBUG >= 2
     cout << "parsetuple()\n";
     #endif
 
@@ -183,7 +187,7 @@ KolToken *parselist(string &expr, unsigned *start) {
 
 KolToken *parseexpr(string &expr, unsigned *start) {
 
-    #if DEBUG >= 1
+    #if DEBUG >= 2
     cout << "parseexpr(" << expr << ")\n";
     #endif
 
@@ -211,7 +215,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         is_continue = false;
         c = expr[j];
 
-        #if DEBUG >= 1
+        #if DEBUG >= 2
         if (tokens.size() > 0) {
             cout << "previous token: " << tokens.back()->getClassname() << ", ";
         }
@@ -248,7 +252,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                 continue;
             }
             if (expr.compare(j, kop.length(), kop) == 0) {
-                #if DEBUG >= 1
+                #if DEBUG >= 2
                 cout << "encountered operator: " << kop << "\n";
                 #endif
                 tokens.push_back(it->second);
@@ -289,7 +293,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
     }
 
     *start = j+1;
-    #if DEBUG >= 1
+    #if DEBUG >= 2
     cout << "num tokens: " << tokens.size() << "\n";
     #endif
 
@@ -300,9 +304,10 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         next_tokens = vector<KolToken *>();
         KolOperator *kop = *it;
         KolObject *self, *callback, *result;
-        int max_arg = 0;
+        int max_arg = 0, min_arg = 0;
+        bool is_contains_tuples = false;
 
-        #if DEBUG >= 1
+        #if DEBUG >= 2
         cout << "processing op: " << kop->getClassname() << "\n";
         #endif
 
@@ -311,13 +316,15 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         for (unsigned k = 0; k < args.size(); k++) {
             if (args[k] > max_arg) {
                 max_arg = args[k];
+            } else if (args[k] < min_arg) {
+                min_arg = args[k];
             }
         }
 
         for (unsigned j = 0; j < tokens.size(); j++) {
             KolToken *kt = tokens[j];
 
-            #if DEBUG >= 1
+            #if DEBUG >= 2
             cout << "processing token: " << kt->getClassname() << "\n";
             #endif
 
@@ -331,7 +338,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                     }
 
                     next_tokens.pop_back();
-                    #if DEBUG >= 1
+                    #if DEBUG >= 2
                     cout << "self is previous token: " << self->getClassname() << "." << kop->getDunder() << "\n";
                     #endif
                     callback = self->access(kop->getDunder());
@@ -355,7 +362,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
                 }
 
-                #if DEBUG >= 1
+                #if DEBUG >= 2
                 cout << "callback: " << callback << "\n";
                 #endif
 
@@ -367,16 +374,25 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                 }
 
                 for (unsigned k = 0; k < args.size(); k++) {
-                    #if DEBUG >= 1
+                    #if DEBUG >= 2
                     cout << "processing arg: i: " << k << ", args[i]: " << args[k] << ", is_bind_vars[i]: " << is_bind_vars[k] << "\n";
                     #endif
-                    if (args[k] == -1) {
-                        arg_obj = (KolObject *)next_tokens.back();
-                        if (is_bind_vars[k] && arg_obj->getClassname() == "__unbound__") {
-                            arg_obj = kolScopeLookup(((KolUnboundVariable *)arg_obj)->getVarname());
+                    if (args[k] < 0) {
+                        if (args[k] == -1) {
+                            arg_obj = (KolObject *)next_tokens.back();
+                            if (is_bind_vars[k] && arg_obj->getClassname() == "__unbound__") {
+                                arg_obj = kolScopeLookup(((KolUnboundVariable *)arg_obj)->getVarname());
+                            }
+                            arg_objs.push_back(arg_obj);
+                        } else {
+                            // currently the only case where this happens is when dealing with unbound-tuples
+                            if (next_tokens.size()+args[k] >= 0) {
+                                arg_obj = (KolObject *)next_tokens[next_tokens.size()+args[k]];
+                            } else {
+                                arg_obj = NULL;
+                            }
+                            arg_objs.push_back(arg_obj);
                         }
-                        arg_objs.push_back(arg_obj);
-                        next_tokens.pop_back();
                     } else {
                         if (tokens.size() <= j + args[k]) {
                             cout << "ERROR: missing argument to operator: " << kt->getClassname() << "\n";
@@ -388,34 +404,60 @@ KolToken *parseexpr(string &expr, unsigned *start) {
                         }
                         arg_objs.push_back(arg_obj);
                     }
-                    #if DEBUG >= 1
+                    #if DEBUG >= 2
                     cout << "successfully processed arg " << k << "\n";
                     #endif
                 }
 
-                #if DEBUG >= 1
-                cout << "args: ";
-                for (unsigned l = 0; l < arg_objs.size(); l++) {
+                #if DEBUG >= 2
+                cout << "successfully processed " << arg_objs.size() << " args\n";
+                #endif
 
+                #if DEBUG >= 2
+                cout << "args:\n";
+                for (unsigned l = 0; l < arg_objs.size(); l++) {
                     if (arg_objs[l]->getClassname() == "int") {
-                        cout << "int(" << ((KolInt *)arg_objs[l])->getValue() << ")";
+                        cout << "\tint(" << ((KolInt *)arg_objs[l])->getValue() << ")\n";
                     } else if (arg_objs[l]->getClassname() == "float") {
-                        cout << "float(" << ((KolFloat *)arg_objs[l])->getValue() << ")";
+                        cout << "\tfloat(" << ((KolFloat *)arg_objs[l])->getValue() << ")\n";
                     } else if (arg_objs[l]->getClassname() == "str") {
-                        cout << "str(" << ((KolString *)arg_objs[l])->getValue() << ")";
+                        cout << "\tstr(" << ((KolString *)arg_objs[l])->getValue() << ")\n";
                     }
-                    cout << ", ";
                 }
                 cout << "\n";
                 #endif
 
+                for (int k = 0; k > min_arg; k--) {
+                    next_tokens.pop_back();
+                }
+
                 result = ((KolMethodWrapper *)callback)->call(arg_objs);
                 next_tokens.push_back(result);
+
+                if (result != NULL && result->getClassname() == "unbound-tuple") {
+                    is_contains_tuples = true;
+                }
 
                 j += max_arg;
 
             } else {
                 next_tokens.push_back(kt);
+            }
+
+        }
+
+        if (is_contains_tuples) {
+
+            KolUnboundTuple *ubt;
+            KolTuple *tup;
+
+            for (unsigned k = 0; k < next_tokens.size(); k++) {
+                if (next_tokens[k] != NULL && next_tokens[k]->getClassname() == "unbound-tuple") {
+                    ubt = (KolUnboundTuple *)next_tokens[k];
+                    tup = new KolTuple(*ubt);
+                    next_tokens[k] = tup;
+                    free(ubt);
+                }
             }
 
         }
@@ -431,7 +473,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
         }
         return tokens[0];
     } else if (tokens.size() == 0) {
-        #if DEBUG >= 1
+        #if DEBUG >= 2
         cout << "WARNING: parsed empty line.\n";
         #endif
         return NULL;
@@ -444,7 +486,7 @@ KolToken *parseexpr(string &expr, unsigned *start) {
 
 int parseline(string &line, bool is_interactive_mode) {
 
-    #if DEBUG >= 1
+    #if DEBUG >= 2
     cout << "parsing line: " << line << '\n';
     #endif
     vector<KolToken *> tokens;
@@ -458,7 +500,7 @@ int parseline(string &line, bool is_interactive_mode) {
         }
     }
 
-    #if DEBUG >= 1
+    #if DEBUG >= 2
 
     if (tokens.size() == 0) {
         cout << ">>> " << "None\n";

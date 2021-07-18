@@ -3,9 +3,6 @@
 #include <fstream>
 
 #include "KolMain.h"
-#include "KolObj.h"
-#include "KolScopes.h"
-#include "KolOverhead.h"
 #include "KolParse.h"
 
 using namespace std;
